@@ -1,0 +1,265 @@
+{
+  "title": "Taliu Application Metrics",
+  "uid": "taliu-app-metrics",
+  "version": 1,
+  "schemaVersion": 39,
+  "refresh": "5m",
+  "time": { "from": "now-30d", "to": "now" },
+  "timezone": "browser",
+  "tags": ["taliu", "application"],
+  "panels": [
+
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total Sessions",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" } }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS value FROM sessions",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total Messages",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "fixed", "fixedColor": "green" } }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS value FROM messages WHERE role = 'user'",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Total Tokens Used",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "orange" },
+          "unit": "short",
+          "decimals": 0
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT COALESCE(SUM(prompt_tokens + completion_tokens), 0) AS value FROM messages WHERE role = 'assistant'",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Estimated Total Cost (USD)",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "unit": "currencyUSD",
+          "decimals": 4
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT ROUND(CAST(COALESCE(SUM(prompt_tokens * 0.00000075 + completion_tokens * 0.0000045), 0) AS NUMERIC), 6) AS value FROM messages WHERE role = 'assistant'",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Sessions per Day",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "single" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  COUNT(*) AS sessions\nFROM sessions\nWHERE created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Messages per Day (User vs Assistant)",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  COUNT(*) FILTER (WHERE role = 'user') AS user_messages,\n  COUNT(*) FILTER (WHERE role = 'assistant') AS assistant_messages\nFROM messages\nWHERE created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Token Usage per Day (Prompt vs Completion)",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  COALESCE(SUM(prompt_tokens), 0) AS prompt_tokens,\n  COALESCE(SUM(completion_tokens), 0) AS completion_tokens\nFROM messages\nWHERE role = 'assistant'\n  AND created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Estimated Cost per Day (USD)",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4,
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "single" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  ROUND(CAST(COALESCE(SUM(prompt_tokens * 0.00000075 + completion_tokens * 0.0000045), 0) AS NUMERIC), 6) AS cost_usd\nFROM messages\nWHERE role = 'assistant'\n  AND created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Average Response Latency per Day (ms)",
+      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
+      "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": { "mode": "fixed", "fixedColor": "purple" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "single" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  ROUND(AVG(latency_ms)) AS avg_latency_ms\nFROM messages\nWHERE role = 'assistant'\n  AND latency_ms IS NOT NULL\n  AND created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Recent Sessions (Last 50)",
+      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
+      "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+      "options": {
+        "sortBy": [{ "displayName": "created_at", "desc": true }]
+      },
+      "fieldConfig": {
+        "defaults": { "custom": { "filterable": true } }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  created_at,\n  message_count,\n  ip_address,\n  SUBSTRING(user_agent, 1, 60) AS user_agent\nFROM sessions\nORDER BY created_at DESC\nLIMIT 50",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    }
+
+  ]
+}

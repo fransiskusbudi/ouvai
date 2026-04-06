@@ -41,6 +41,8 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning
     env_file:
       - .env
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     networks:
       - monitoring
     depends_on:

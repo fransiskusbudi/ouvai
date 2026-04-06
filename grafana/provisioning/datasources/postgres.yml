@@ -1,0 +1,17 @@
+apiVersion: 1
+
+datasources:
+  - name: Taliu PostgreSQL
+    uid: taliu-postgres
+    type: postgres
+    access: proxy
+    url: host.docker.internal:5432
+    database: taliu
+    user: taliu
+    secureJsonData:
+      password: OvxVPFl2XPrJeo7AAk4f3Cau
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+    isDefault: false
