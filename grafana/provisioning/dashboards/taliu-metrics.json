@@ -141,21 +141,22 @@
     {
       "id": 6,
       "type": "timeseries",
-      "title": "Messages per Day (User vs Assistant)",
+      "title": "Average Messages per Session per Day",
       "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
       "datasource": { "uid": "taliu-postgres", "type": "postgres" },
       "fieldConfig": {
         "defaults": {
-          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "decimals": 1
         }
       },
       "options": {
-        "tooltip": { "mode": "multi" },
+        "tooltip": { "mode": "single" },
         "legend": { "displayMode": "list", "placement": "bottom" }
       },
       "targets": [
         {
-          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  COUNT(*) FILTER (WHERE role = 'user') AS user_messages,\n  COUNT(*) FILTER (WHERE role = 'assistant') AS assistant_messages\nFROM messages\nWHERE created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  ROUND(AVG(message_count), 1) AS avg_messages_per_session\nFROM sessions\nWHERE created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
           "format": "time_series",
           "refId": "A"
         }
