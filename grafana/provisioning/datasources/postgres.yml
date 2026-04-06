@@ -6,11 +6,11 @@ datasources:
     type: postgres
     access: proxy
     url: host.docker.internal:5432
-    database: taliu
     user: taliu
     secureJsonData:
       password: OvxVPFl2XPrJeo7AAk4f3Cau
     jsonData:
+      database: taliu
       sslmode: disable
       postgresVersion: 1600
       timescaledb: false
