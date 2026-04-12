@@ -25,3 +25,6 @@ grafana/data/
 
 # Prometheus data (generated at runtime)
 prometheus/data/
+
+# Internal docs
+docs/

@@ -1,7 +1,7 @@
 {
   "title": "Taliu Application Metrics",
   "uid": "taliu-app-metrics",
-  "version": 1,
+  "version": 2,
   "schemaVersion": 39,
   "refresh": "5m",
   "time": { "from": "now-30d", "to": "now" },
@@ -60,7 +60,7 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "Total Tokens Used",
+      "title": "Total Tokens Used (Text)",
       "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
       "datasource": { "uid": "taliu-postgres", "type": "postgres" },
       "options": {
@@ -78,7 +78,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT COALESCE(SUM(prompt_tokens + completion_tokens), 0) AS value FROM messages WHERE role = 'assistant'",
+          "rawSql": "SELECT COALESCE(SUM(m.prompt_tokens + m.completion_tokens), 0) AS value FROM messages m JOIN sessions s ON s.id = m.session_id WHERE m.role = 'assistant' AND s.channel = 'text'",
           "format": "table",
           "refId": "A"
         }
@@ -106,7 +106,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT ROUND(CAST(COALESCE(SUM(prompt_tokens * 0.00000075 + completion_tokens * 0.0000045), 0) AS NUMERIC), 6) AS value FROM messages WHERE role = 'assistant'",
+          "rawSql": "SELECT ROUND(CAST( COALESCE(SUM(CASE WHEN s.channel = 'text' THEN m.prompt_tokens * 0.00000075 + m.completion_tokens * 0.0000045 ELSE 0 END), 0) + COALESCE(SUM(CASE WHEN s.channel = 'voice' THEN COALESCE(m.tts_characters, 0) * 0.000015 + COALESCE(m.audio_duration_ms, 0) / 1000.0 / 60.0 * 0.0059 ELSE 0 END), 0) AS NUMERIC), 6) AS value FROM messages m JOIN sessions s ON s.id = m.session_id WHERE m.role = 'assistant'",
           "format": "table",
           "refId": "A"
         }
@@ -121,17 +121,16 @@
       "datasource": { "uid": "taliu-postgres", "type": "postgres" },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "fixed", "fixedColor": "blue" },
           "custom": { "lineWidth": 2, "fillOpacity": 10 }
         }
       },
       "options": {
-        "tooltip": { "mode": "single" },
+        "tooltip": { "mode": "multi" },
         "legend": { "displayMode": "list", "placement": "bottom" }
       },
       "targets": [
         {
-          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  COUNT(*) AS sessions\nFROM sessions\nWHERE created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  COUNT(*) FILTER (WHERE channel = 'text') AS text,\n  COUNT(*) FILTER (WHERE channel = 'voice') AS voice\nFROM sessions\nWHERE created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
           "format": "time_series",
           "refId": "A"
         }
@@ -181,7 +180,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  COALESCE(SUM(prompt_tokens), 0) AS prompt_tokens,\n  COALESCE(SUM(completion_tokens), 0) AS completion_tokens\nFROM messages\nWHERE role = 'assistant'\n  AND created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  date_trunc('day', m.created_at) AS time,\n  COALESCE(SUM(m.prompt_tokens), 0) AS prompt_tokens,\n  COALESCE(SUM(m.completion_tokens), 0) AS completion_tokens\nFROM messages m\nJOIN sessions s ON s.id = m.session_id\nWHERE m.role = 'assistant'\n  AND s.channel = 'text'\n  AND m.created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
           "format": "time_series",
           "refId": "A"
         }
@@ -198,17 +197,16 @@
         "defaults": {
           "unit": "currencyUSD",
           "decimals": 4,
-          "color": { "mode": "fixed", "fixedColor": "red" },
-          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "stacking": { "mode": "normal" } }
         }
       },
       "options": {
-        "tooltip": { "mode": "single" },
+        "tooltip": { "mode": "multi" },
         "legend": { "displayMode": "list", "placement": "bottom" }
       },
       "targets": [
         {
-          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  ROUND(CAST(COALESCE(SUM(prompt_tokens * 0.00000075 + completion_tokens * 0.0000045), 0) AS NUMERIC), 6) AS cost_usd\nFROM messages\nWHERE role = 'assistant'\n  AND created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  date_trunc('day', m.created_at) AS time,\n  ROUND(CAST(COALESCE(SUM(CASE WHEN s.channel = 'text' THEN m.prompt_tokens * 0.00000075 + m.completion_tokens * 0.0000045 ELSE 0 END), 0) AS NUMERIC), 6) AS text_cost,\n  ROUND(CAST(COALESCE(SUM(CASE WHEN s.channel = 'voice' THEN COALESCE(m.tts_characters, 0) * 0.000015 + COALESCE(m.audio_duration_ms, 0) / 1000.0 / 60.0 * 0.0059 ELSE 0 END), 0) AS NUMERIC), 6) AS voice_cost\nFROM messages m\nJOIN sessions s ON s.id = m.session_id\nWHERE m.role = 'assistant'\n  AND m.created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
           "format": "time_series",
           "refId": "A"
         }
@@ -255,9 +253,143 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT\n  created_at,\n  message_count,\n  ip_address,\n  SUBSTRING(user_agent, 1, 60) AS user_agent\nFROM sessions\nORDER BY created_at DESC\nLIMIT 50",
+          "rawSql": "SELECT\n  created_at,\n  channel,\n  message_count,\n  ip_address,\n  SUBSTRING(user_agent, 1, 60) AS user_agent\nFROM sessions\nORDER BY created_at DESC\nLIMIT 50",
           "format": "table",
           "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 20,
+      "type": "row",
+      "title": "Voice Metrics",
+      "gridPos": { "x": 0, "y": 28, "w": 24, "h": 1 },
+      "collapsed": true,
+      "panels": [
+        {
+          "id": 11,
+          "type": "stat",
+          "title": "Total Voice Calls",
+          "gridPos": { "x": 0, "y": 29, "w": 6, "h": 4 },
+          "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": { "color": { "mode": "fixed", "fixedColor": "super-light-purple" } }
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT COUNT(*) AS value FROM sessions WHERE channel = 'voice'",
+              "format": "table",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "type": "stat",
+          "title": "Total Call Duration",
+          "gridPos": { "x": 6, "y": 29, "w": 6, "h": 4 },
+          "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "auto"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "fixed", "fixedColor": "super-light-purple" },
+              "unit": "ms",
+              "decimals": 0
+            }
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT COALESCE(SUM(m.audio_duration_ms), 0) AS value FROM messages m JOIN sessions s ON s.id = m.session_id WHERE m.role = 'assistant' AND s.channel = 'voice'",
+              "format": "table",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "type": "timeseries",
+          "title": "Voice Calls per Day",
+          "gridPos": { "x": 0, "y": 33, "w": 8, "h": 8 },
+          "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "fixed", "fixedColor": "purple" },
+              "custom": { "lineWidth": 2, "fillOpacity": 10 }
+            }
+          },
+          "options": {
+            "tooltip": { "mode": "single" },
+            "legend": { "displayMode": "list", "placement": "bottom" }
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  COUNT(*) AS voice_calls\nFROM sessions\nWHERE channel = 'voice'\n  AND created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
+              "format": "time_series",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "type": "timeseries",
+          "title": "Avg Call Duration per Day",
+          "gridPos": { "x": 8, "y": 33, "w": 8, "h": 8 },
+          "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "color": { "mode": "fixed", "fixedColor": "purple" },
+              "custom": { "lineWidth": 2, "fillOpacity": 10 }
+            }
+          },
+          "options": {
+            "tooltip": { "mode": "single" },
+            "legend": { "displayMode": "list", "placement": "bottom" }
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT\n  date_trunc('day', s.created_at) AS time,\n  ROUND(AVG(session_duration)) AS avg_duration_ms\nFROM (\n  SELECT\n    m.session_id,\n    SUM(m.audio_duration_ms) AS session_duration\n  FROM messages m\n  JOIN sessions s ON s.id = m.session_id\n  WHERE m.role = 'assistant'\n    AND s.channel = 'voice'\n    AND m.audio_duration_ms IS NOT NULL\n  GROUP BY m.session_id\n) sub\nJOIN sessions s ON s.id = sub.session_id\nWHERE s.created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
+              "format": "time_series",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "type": "timeseries",
+          "title": "Voice Cost Breakdown per Day (STT vs TTS)",
+          "gridPos": { "x": 16, "y": 33, "w": 8, "h": 8 },
+          "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "currencyUSD",
+              "decimals": 4,
+              "custom": { "lineWidth": 2, "fillOpacity": 10, "stacking": { "mode": "normal" } }
+            }
+          },
+          "options": {
+            "tooltip": { "mode": "multi" },
+            "legend": { "displayMode": "list", "placement": "bottom" }
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT\n  date_trunc('day', m.created_at) AS time,\n  ROUND(CAST(COALESCE(SUM(COALESCE(m.audio_duration_ms, 0) / 1000.0 / 60.0 * 0.0059), 0) AS NUMERIC), 6) AS stt_cost,\n  ROUND(CAST(COALESCE(SUM(COALESCE(m.tts_characters, 0) * 0.000015), 0) AS NUMERIC), 6) AS tts_cost\nFROM messages m\nJOIN sessions s ON s.id = m.session_id\nWHERE m.role = 'assistant'\n  AND s.channel = 'voice'\n  AND m.created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
+              "format": "time_series",
+              "refId": "A"
+            }
+          ]
         }
       ]
     }
