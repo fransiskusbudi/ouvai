@@ -321,7 +321,7 @@
           "id": 13,
           "type": "timeseries",
           "title": "Voice Calls per Day",
-          "gridPos": { "x": 0, "y": 33, "w": 8, "h": 8 },
+          "gridPos": { "x": 0, "y": 33, "w": 6, "h": 8 },
           "datasource": { "uid": "taliu-postgres", "type": "postgres" },
           "fieldConfig": {
             "defaults": {
@@ -345,7 +345,7 @@
           "id": 14,
           "type": "timeseries",
           "title": "Avg Call Duration per Day",
-          "gridPos": { "x": 8, "y": 33, "w": 8, "h": 8 },
+          "gridPos": { "x": 6, "y": 33, "w": 6, "h": 8 },
           "datasource": { "uid": "taliu-postgres", "type": "postgres" },
           "fieldConfig": {
             "defaults": {
@@ -370,7 +370,7 @@
           "id": 15,
           "type": "timeseries",
           "title": "Voice Cost Breakdown per Day (STT vs TTS)",
-          "gridPos": { "x": 16, "y": 33, "w": 8, "h": 8 },
+          "gridPos": { "x": 12, "y": 33, "w": 6, "h": 8 },
           "datasource": { "uid": "taliu-postgres", "type": "postgres" },
           "fieldConfig": {
             "defaults": {
@@ -386,6 +386,31 @@
           "targets": [
             {
               "rawSql": "SELECT\n  date_trunc('day', m.created_at) AS time,\n  ROUND(CAST(COALESCE(SUM(COALESCE(m.audio_duration_ms, 0) / 1000.0 / 60.0 * 0.0059), 0) AS NUMERIC), 6) AS stt_cost,\n  ROUND(CAST(COALESCE(SUM(COALESCE(m.tts_characters, 0) * 0.000015), 0) AS NUMERIC), 6) AS tts_cost\nFROM messages m\nJOIN sessions s ON s.id = m.session_id\nWHERE m.role = 'assistant'\n  AND s.channel = 'voice'\n  AND m.created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
+              "format": "time_series",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 16,
+          "type": "timeseries",
+          "title": "Avg Voice Response Latency per Day (ms)",
+          "gridPos": { "x": 18, "y": 33, "w": 6, "h": 8 },
+          "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms",
+              "color": { "mode": "fixed", "fixedColor": "purple" },
+              "custom": { "lineWidth": 2, "fillOpacity": 10 }
+            }
+          },
+          "options": {
+            "tooltip": { "mode": "single" },
+            "legend": { "displayMode": "list", "placement": "bottom" }
+          },
+          "targets": [
+            {
+              "rawSql": "SELECT\n  date_trunc('day', m.created_at) AS time,\n  ROUND(AVG(m.latency_ms)) AS avg_latency_ms\nFROM messages m\nJOIN sessions s ON s.id = m.session_id\nWHERE m.role = 'assistant'\n  AND s.channel = 'voice'\n  AND m.latency_ms IS NOT NULL\n  AND m.created_at >= NOW() - INTERVAL '30 days'\nGROUP BY 1\nORDER BY 1",
               "format": "time_series",
               "refId": "A"
             }
