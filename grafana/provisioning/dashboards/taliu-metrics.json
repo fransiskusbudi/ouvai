@@ -165,7 +165,7 @@
     {
       "id": 7,
       "type": "timeseries",
-      "title": "Token Usage per Day (Prompt vs Completion)",
+      "title": "Token Usage per Day - Text (Prompt vs Completion)",
       "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
       "datasource": { "uid": "taliu-postgres", "type": "postgres" },
       "fieldConfig": {
