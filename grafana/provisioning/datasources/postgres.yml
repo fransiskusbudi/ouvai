@@ -5,7 +5,7 @@ datasources:
     uid: taliu-postgres
     type: postgres
     access: proxy
-    url: host.docker.internal:5432
+    url: taliu-postgres:5432
     user: taliu
     secureJsonData:
       password: REDACTED

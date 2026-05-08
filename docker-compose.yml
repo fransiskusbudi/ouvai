@@ -45,6 +45,7 @@ services:
       - 'host.docker.internal:host-gateway'
     networks:
       - monitoring
+      - taliu-agent
     depends_on:
       - prometheus
     restart: unless-stopped
@@ -56,3 +57,6 @@ volumes:
 networks:
   monitoring:
     driver: bridge
+  taliu-agent:
+    external: true
+    name: taliu_agent-network
