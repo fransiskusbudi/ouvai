@@ -261,17 +261,48 @@
     },
 
     {
+      "id": 17,
+      "type": "table",
+      "title": "Recent Messages (Last 100)",
+      "gridPos": { "x": 0, "y": 28, "w": 24, "h": 10 },
+      "datasource": { "uid": "taliu-postgres", "type": "postgres" },
+      "options": {
+        "sortBy": [{ "displayName": "created_at", "desc": true }],
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": { "custom": { "filterable": true, "align": "left" } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "content" },
+            "properties": [
+              { "id": "custom.width", "value": 600 },
+              { "id": "custom.cellOptions", "value": { "type": "auto", "wrapText": true } }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT\n  m.created_at,\n  s.channel,\n  m.role,\n  m.content,\n  m.latency_ms,\n  m.audio_duration_ms\nFROM messages m\nJOIN sessions s ON s.id = m.session_id\nORDER BY m.created_at DESC\nLIMIT 100",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
       "id": 20,
       "type": "row",
       "title": "Voice Metrics",
-      "gridPos": { "x": 0, "y": 28, "w": 24, "h": 1 },
+      "gridPos": { "x": 0, "y": 38, "w": 24, "h": 1 },
       "collapsed": true,
       "panels": [
         {
           "id": 11,
           "type": "stat",
           "title": "Total Voice Calls",
-          "gridPos": { "x": 0, "y": 29, "w": 6, "h": 4 },
+          "gridPos": { "x": 0, "y": 39, "w": 6, "h": 4 },
           "datasource": { "uid": "taliu-postgres", "type": "postgres" },
           "options": {
             "reduceOptions": { "calcs": ["lastNotNull"] },
@@ -294,7 +325,7 @@
           "id": 12,
           "type": "stat",
           "title": "Total Call Duration",
-          "gridPos": { "x": 6, "y": 29, "w": 6, "h": 4 },
+          "gridPos": { "x": 6, "y": 39, "w": 6, "h": 4 },
           "datasource": { "uid": "taliu-postgres", "type": "postgres" },
           "options": {
             "reduceOptions": { "calcs": ["lastNotNull"] },
@@ -321,7 +352,7 @@
           "id": 13,
           "type": "timeseries",
           "title": "Voice Calls per Day",
-          "gridPos": { "x": 0, "y": 33, "w": 6, "h": 8 },
+          "gridPos": { "x": 0, "y": 43, "w": 6, "h": 8 },
           "datasource": { "uid": "taliu-postgres", "type": "postgres" },
           "fieldConfig": {
             "defaults": {
@@ -345,7 +376,7 @@
           "id": 14,
           "type": "timeseries",
           "title": "Avg Call Duration per Day",
-          "gridPos": { "x": 6, "y": 33, "w": 6, "h": 8 },
+          "gridPos": { "x": 6, "y": 43, "w": 6, "h": 8 },
           "datasource": { "uid": "taliu-postgres", "type": "postgres" },
           "fieldConfig": {
             "defaults": {
@@ -370,7 +401,7 @@
           "id": 15,
           "type": "timeseries",
           "title": "Voice Cost Breakdown per Day (STT vs TTS)",
-          "gridPos": { "x": 12, "y": 33, "w": 6, "h": 8 },
+          "gridPos": { "x": 12, "y": 43, "w": 6, "h": 8 },
           "datasource": { "uid": "taliu-postgres", "type": "postgres" },
           "fieldConfig": {
             "defaults": {
@@ -395,7 +426,7 @@
           "id": 16,
           "type": "timeseries",
           "title": "Avg Voice Response Latency per Day (ms)",
-          "gridPos": { "x": 18, "y": 33, "w": 6, "h": 8 },
+          "gridPos": { "x": 18, "y": 43, "w": 6, "h": 8 },
           "datasource": { "uid": "taliu-postgres", "type": "postgres" },
           "fieldConfig": {
             "defaults": {
