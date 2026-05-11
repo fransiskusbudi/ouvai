@@ -8,7 +8,7 @@ datasources:
     url: taliu-postgres:5432
     user: taliu
     secureJsonData:
-      password: REDACTED
+      password: ${POSTGRES_PASSWORD}
     jsonData:
       database: taliu
       sslmode: disable
