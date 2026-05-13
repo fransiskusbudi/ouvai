@@ -284,7 +284,7 @@
       },
       "targets": [
         {
-          "rawSql": "SELECT\n  m.created_at,\n  s.channel,\n  m.role,\n  m.content,\n  m.latency_ms,\n  m.audio_duration_ms\nFROM messages m\nJOIN sessions s ON s.id = m.session_id\nORDER BY m.created_at DESC\nLIMIT 100",
+          "rawSql": "SELECT\n  m.created_at,\n  s.channel,\n  m.role,\n  m.content,\n  m.latency_ms,\n  m.audio_duration_ms\nFROM messages m\nJOIN sessions s ON s.id = m.session_id\nORDER BY m.created_at DESC, m.id DESC\nLIMIT 100",
           "format": "table",
           "refId": "A"
         }
